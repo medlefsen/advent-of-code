@@ -22,6 +22,7 @@ CONSTANT: costs {
 }
 
 CONSTANT: hall-length 11
+CONSTANT: room-depth 4
 CONSTANT: exits {
   { amber 2 }
   { bronze 4 }
@@ -38,8 +39,10 @@ STRING: board
 #############
 #...........#
 ###.#.#.#.###
-  #.#.#.#.#
-  #########
+  #.#.#.#.#  
+  #.#.#.#.#  
+  #.#.#.#.#  
+  #########  
 ;
 TUPLE: amphipod type room pos ;
 : <amphipod> ( type room pos -- amp ) amphipod boa ;
@@ -62,12 +65,12 @@ C: <action> action
 
 :: enter-room ( amp -- )
   amp pos>> entryways at [
-    amp [ room<< ] [ 2 swap pos<< ] bi
+    amp [ room<< ] [ room-depth swap pos<< ] bi
   ] when*
 ;
 
 :: exit-room ( amp -- )
- amp pos>> 2 = [
+ amp pos>> room-depth = [
    amp [ dup room>> exits at swap pos<< ]
    [ hall swap room<< ] bi 
  ] when
@@ -134,13 +137,16 @@ C: <action> action
 : can-enter? ( action -- ? )
   { 
     [ in-dest? ]
-    [ in-room [ { [ pos>> 0 = ] [ get[ room type ] = ] } && ]
+    [ in-room [ { [ pos>> room-depth 1 - = not ]
+                  [ get[ room type ] = ] }
+                  && ]
       all? ]
   } &&
 ;
 
 : into-room-moves ( action -- actions )
-  dup can-enter? [ { 1 0 } swap valid-moves 1 tail* ] [ drop { } ] if
+  dup can-enter? [ room-depth 0 (a,b] swap valid-moves 1 tail* ]
+  [ drop { } ] if
 ;
 
 :: (hall-moves) ( action -- actions )
@@ -152,8 +158,8 @@ C: <action> action
   (hall-moves) [ dup room? [ into-room-moves ] [ 1array ] if ] map-concat
 ;
 
-: room-blocked? ( action -- ? )
-  in-room ?first [ pos>> 1 = ] [ f ] if*
+:: room-blocked? ( action -- ? )
+  action in-room [ pos>> action amp>> pos>> > ] any?
 ;
 
 : should-exit? ( action -- ? )
@@ -165,7 +171,7 @@ C: <action> action
 ;
 
 :: from-room-moves ( action -- actions )
-  action can-exit? [ 2 action move into-hall-moves ] [ { } ] if
+  action can-exit? [ room-depth action move into-hall-moves ] [ { } ] if
 ;
 
 : from-hall-moves ( action -- actions )
@@ -236,7 +242,7 @@ C: <action> action
  universe amphipods>> [
    get[ type pos room ] :> ( type pos room )
    room hall = [ pos ] [ room exits at ] if 1 + :> col
-   room hall = [ 1 ] [ 3 pos - ] if :> row
+   room hall = [ 1 ] [ 5 pos - ] if :> row
    type types at row 14 * col + str set-nth
  ] each
  str
@@ -250,7 +256,9 @@ C: <action> action
   dup keys [ print-universe nl ] each
 ;
 
-INPUT: [ 2 swap nth 1 parse-line ]
-       [ 3 swap nth 0 parse-line ]
-       bi append <universe> 0 2array 1array >hashtable ;
-PART1: run-simulation values first; 
+INPUT: { [ 2 swap nth 3 parse-line ]
+         [ 3 swap nth 2 parse-line ]
+         [ 4 swap nth 1 parse-line ]
+         [ 5 swap nth 0 parse-line ] }
+       cleave 4array concat <universe> 0 2array 1array >hashtable ;
+PART2: run-simulation values first ; 
