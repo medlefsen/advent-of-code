@@ -1,5 +1,6 @@
 mod day1;
 mod util;
+mod day2;
 
 use std::env;
 
@@ -7,6 +8,8 @@ fn run_part(day: i32, part: i32) {
     match (day,part) {
         (1,1) => day1::part1(),
         (1,2) => day1::part2(),
+        (2,1) => day2::part1(),
+        (2,2) => day2::part2(),
         _ => println!("Invalid args"),
     }
 }
