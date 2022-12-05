@@ -9,11 +9,11 @@ fn read_calories(filename: &str) -> Vec<i32> {
 }
 
 pub fn part1() {
-    println!("{} == {}",  71300, read_calories("inputs/day1/part1.txt").iter().max().unwrap());
+    println!("{}",  read_calories("inputs/day1/part1.txt").iter().max().unwrap());
 }
 
 pub fn part2() {
     let mut calories = read_calories("inputs/day1/part2.txt");
     calories.sort();
-    println!("{} == {}", 209691, calories.iter().rev().take(3).sum::<i32>());
+    println!("{}", calories.iter().rev().take(3).sum::<i32>());
 }

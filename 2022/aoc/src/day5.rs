@@ -79,7 +79,7 @@ pub fn part1() {
         for inst in instructions {
             inst.apply(&mut state);
         }
-        println!("{} == {}", "TDCHVHJTG", state.iter().map(|s| s.iter().last().unwrap() ).collect::<String>());
+        println!("{}", state.iter().map(|s| s.iter().last().unwrap() ).collect::<String>());
     }
 }
 pub fn part2() {
@@ -88,6 +88,6 @@ pub fn part2() {
         for inst in instructions {
             inst.apply_grouped(&mut state);
         }
-        println!("{} == {}", "NGCMPJLHV", state.iter().map(|s| s.iter().last().unwrap() ).collect::<String>());
+        println!("{}", state.iter().map(|s| s.iter().last().unwrap() ).collect::<String>());
     }
 }

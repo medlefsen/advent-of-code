@@ -87,7 +87,7 @@ pub fn part1() {
         .map(|(opp, me)| score(*opp, *me))
         .sum();
 
-    println!("{} == {}", 11666, score);
+    println!("{}", score);
 }
 
 pub fn part2() {
@@ -95,5 +95,5 @@ pub fn part2() {
         .map(|(opp, outcome)| score(*opp, determine_throw(*opp, *outcome)))
         .sum();
 
-    println!("{} == {}", 12767, score);
+    println!("{}", score);
 }

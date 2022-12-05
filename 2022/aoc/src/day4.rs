@@ -25,10 +25,10 @@ fn overlaps(a: &Section, b: &Section) -> bool {
 
 pub fn part1() {
     let score = read_pairs("inputs/day4/part1.txt").iter().filter(|(a,b)| fully_contains(a,b)).count();
-    println!("{} == {}", 602, score);
+    println!("{}", score);
 }
 
 pub fn part2() {
     let score = read_pairs("inputs/day4/part2.txt").iter().filter(|(a,b)| overlaps(a,b)).count();
-    println!("{} == {}", 891, score);
+    println!("{}", score);
 }

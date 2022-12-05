@@ -85,10 +85,10 @@ fn read_rucksacks(filename: &str) -> Vec<Rucksack> {
 
 pub fn part1() {
     let day3 = Day3::new("inputs/day3/part1.txt");
-    println!("{} == {}",7691, day3.part1());
+    println!("{}", day3.part1());
 }
 
 pub fn part2() {
     let day3 = Day3::new("inputs/day3/part2.txt");
-    println!("{} == {}", 2508, day3.part2());
+    println!("{}", day3.part2());
 }
