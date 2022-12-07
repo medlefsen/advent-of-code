@@ -1,0 +1,10 @@
+filename = { (ASCII_ALPHA_LOWER | ASCII_DIGIT | ".")+   }
+size = { ASCII_DIGIT+ }
+up_dir = { ".." }
+top_level = { "/" }
+cd = { "cd " ~ ( top_level | up_dir | filename ) }
+ls = { "ls" ~ ("\n" ~ (file_entry | dir_entry))* }
+dir_entry = { "dir " ~ filename }
+file_entry = { size ~ " " ~ filename }
+commands = { ("$ " ~ (cd | ls) ~ "\n" )+ }
+input = { SOI ~ commands ~ EOI }
