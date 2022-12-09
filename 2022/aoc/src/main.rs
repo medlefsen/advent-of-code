@@ -9,8 +9,10 @@ mod day4;
 mod day5;
 mod day6;
 mod day7;
-mod grid;
 mod day8;
+mod day9;
+
+mod grid;
 
 use std::env;
 
@@ -32,6 +34,8 @@ fn run_part(day: i32, part: i32) {
         (7,2) => day7::part2(),
         (8,1) => day8::part1(),
         (8,2) => day8::part2(),
+        (9,1) => day9::part1(),
+        (9,2) => day9::part2(),
         _ => println!("Invalid args"),
     }
 }
