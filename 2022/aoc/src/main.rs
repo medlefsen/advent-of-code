@@ -12,6 +12,7 @@ mod day7;
 mod day8;
 mod day9;
 mod day10;
+mod day11;
 
 mod grid;
 
@@ -39,6 +40,8 @@ fn run_part(day: i32, part: i32) {
         (9,2) => day9::part2(),
         (10,1) => day10::part1(),
         (10,2) => day10::part2(),
+        (11,1) => day11::part1(),
+        (11,2) => day11::part2(),
         _ => println!("Invalid args"),
     }
 }
