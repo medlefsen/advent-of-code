@@ -1,8 +1,7 @@
 use std::fs::read_to_string;
 use std::mem::swap;
-use std::ops::{Add, Deref, Div, Mul, Rem};
+use std::ops::{Add, Div, Mul, Rem};
 use std::rc::Rc;
-use std::str::FromStr;
 use pest::iterators::Pair;
 use pest::Parser;
 
