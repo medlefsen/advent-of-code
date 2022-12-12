@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::fmt::Debug;
 use std::fs::read_to_string;
 use std::mem::swap;
 use std::ops::{Add, Div, Mul, Rem};
@@ -17,78 +19,61 @@ trait Square {
     fn square(self) -> Self;
 }
 
-#[derive(Clone, Debug)]
-enum Item {
-    Val(i32),
-    Add(Rc<Item>, i32),
-    Mul(Rc<Item>, i32),
-    Square(Rc<Item>),
+trait FromInitial {
+    fn from_initial<T: Iterator<Item=i32>>(initial_val: i32, divisors: T) -> Self;
 }
 
-impl From<Item> for i64 {
-    fn from(tree: Item) -> Self {
-        match tree {
-            Item::Val(v) => v as i64,
-            Item::Add(t, v) => i64::from((*t).clone()) + v as i64,
-            Item::Mul(t, v) => i64::from((*t).clone()) * v as i64,
-            Item::Square(t) => {
-                let v : i64 = (*t).clone().into();
-                v * v
-            }
-        }
+trait Item: Debug + Clone + FromInitial + Add<i32, Output=Self> + Mul<i32, Output=Self> + Div<i32, Output=Self> + Rem<i32,Output=i32> + Square {
+}
+
+impl<T> Item for T
+    where T: Debug + Clone + FromInitial + Add<i32, Output=Self> + Mul<i32, Output=Self> + Div<i32, Output=Self> + Rem<i32,Output=i32> + Square {
+}
+
+#[derive(Clone, Copy, Debug)]
+struct IntItem(i64);
+
+impl FromInitial for IntItem {
+    fn from_initial<T: Iterator<Item=i32>>(initial_val: i32, _: T) -> Self {
+        Self(initial_val as i64)
     }
 }
 
-impl Parseable for Item {
-    fn parse(pair: Pair<Rule>) -> Self {
-        Self::Val(i32::parse(pair))
+impl Square for IntItem {
+    fn square(self) -> Self {
+        Self(self.0 * self.0)
     }
 }
 
-impl Add<i32> for Item {
-    type Output = Item;
+impl Add<i32> for IntItem {
+    type Output = Self;
 
     fn add(self, rhs: i32) -> Self::Output {
-        Self::Add(Rc::new(self), rhs)
+        Self(self.0 + rhs as i64)
     }
 }
 
-impl Square for Item {
-    fn square(self) -> Self {
-        Self::Square(Rc::new(self))
-    }
-}
-
-impl Mul<i32> for Item {
-    type Output = Item;
-
-    fn mul(self, rhs: i32) -> Self::Output {
-        Self::Mul(Rc::new(self), rhs)
-    }
-}
-
-impl Div<i32> for Item {
-    type Output = Item;
+impl Div<i32> for IntItem {
+    type Output = Self;
 
     fn div(self, rhs: i32) -> Self::Output {
-        let lhs : i64 = self.into();
-        Self::Val((lhs / rhs as i64) as i32)
+        Self(self.0 / rhs as i64)
     }
 }
 
-impl Rem<i32> for Item {
+impl Mul<i32> for IntItem {
+    type Output = Self;
+
+    fn mul(self, rhs: i32) -> Self::Output {
+        Self(self.0 * rhs as i64)
+    }
+}
+
+impl Rem<i32> for IntItem {
     type Output = i32;
 
     fn rem(self, rhs: i32) -> Self::Output {
-        match self {
-            Item::Val(v) => v % rhs,
-            Item::Add(t, v) => (((*t).clone() % rhs) + v) % rhs,
-            Item::Mul(t, v) => (((*t).clone() % rhs) * v) % rhs,
-            Item::Square(t) => {
-                let rem = (*t).clone() % rhs;
-                (rem * rem) % rhs
-            }
-        }
+        (self.0 % rhs as i64) as i32
     }
 }
 
@@ -126,7 +111,8 @@ struct Operation {
 }
 
 impl Operation {
-    fn eval(&self, old: Item) -> Item {
+    fn eval<T: Item>(&self, old: T) -> T
+    {
         match (self.op, self.rhs) {
             (Op::Add, Num(v)) => old + v,
             (Op::Mul, Num(v)) => old * v,
@@ -146,10 +132,9 @@ impl Parseable for Operation {
     }
 }
 
-type Items = Vec<Item>;
-impl Parseable for Items {
+impl<T: Parseable> Parseable for Vec<T> {
     fn parse(pair: Pair<Rule>) -> Self {
-        pair.into_inner().map(|r| Item::parse(r) ).collect()
+        pair.into_inner().map(|r| T::parse(r) ).collect()
     }
 }
 
@@ -172,47 +157,116 @@ impl Parseable for usize {
 }
 
 #[derive(Clone, Debug)]
-struct Throw {
-    item: Item,
-    monkey_idx: usize,
-}
-
-#[derive(Clone, Debug)]
-struct Monkey {
-    total_inspected: usize,
-    items: Vec<Item>,
-    operation: Operation,
-    divisible_test: i32,
+struct ThrowDecision {
+    divisor: i32,
     if_divisible_monkey: usize,
     if_not_divisible_monkey: usize,
 }
 
-impl Parseable for Monkey {
+impl Parseable for ThrowDecision {
+    fn parse(pair: Pair<Rule>) -> Self {
+        let mut pairs = pair.into_inner();
+        let divisor = i32::parse(pairs.next().unwrap().into_inner().next().unwrap());
+        let if_divisible_monkey = usize::parse(pairs.next().unwrap().into_inner().next().unwrap());
+        let if_not_divisible_monkey = usize::parse(pairs.next().unwrap().into_inner().next().unwrap());
+        Self { divisor, if_divisible_monkey, if_not_divisible_monkey }
+    }
+}
+
+impl ThrowDecision {
+    fn throw_to<T: Rem<i32, Output=i32> + Clone + Debug>(&self, item: &T) -> usize
+    {
+        let m = item.clone() % self.divisor;
+       // println!("{} = {:?} % {}", m, item.clone(), self.divisor);
+        if  m == 0 {
+            self.if_divisible_monkey
+        } else {
+            self.if_not_divisible_monkey
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct MonkeyInput {
+    items: Vec<i32>,
+    operation: Operation,
+    throw_decision: ThrowDecision,
+}
+
+impl Parseable for MonkeyInput {
     fn parse(pair: Pair<Rule>) -> Self {
         let mut pairs = pair.into_inner();
         pairs.next(); // id number
-        let items = Items::parse(pairs.next().unwrap());
+        let items = Vec::<i32>::parse(pairs.next().unwrap());
         let operation = Operation::parse(pairs.next().unwrap());
-        let divisible_test = i32::parse(pairs.next().unwrap().into_inner().next().unwrap());
-        let if_divisible_monkey = usize::parse(pairs.next().unwrap().into_inner().next().unwrap());
-        let if_not_divisible_monkey = usize::parse(pairs.next().unwrap().into_inner().next().unwrap());
-        Self { total_inspected: 0, items, operation, divisible_test, if_divisible_monkey, if_not_divisible_monkey }
+        let throw_decision = ThrowDecision::parse(pairs.next().unwrap());
+        Self { items, operation, throw_decision }
     }
 }
 
-type MonkeyList = Vec<Monkey>;
-impl Parseable for MonkeyList {
-    fn parse(pair: Pair<Rule>) -> Self {
-        pair.into_inner().map(|p| Monkey::parse(p) ).collect()
+#[derive(Clone, Debug)]
+struct RemMap(HashMap<i32,i32>);
+
+impl FromInitial for RemMap {
+    fn from_initial<T: Iterator<Item=i32>>(initial_val: i32, divisors: T) -> Self {
+        Self(divisors.map(|divisor| (divisor, initial_val % divisor)).collect())
     }
 }
 
-fn parse_input() -> MonkeyList {
+impl Add<i32> for RemMap {
+    type Output = RemMap;
+
+    fn add(self, rhs: i32) -> Self::Output {
+        Self(
+            self.0.into_iter().map(|(divisor, rem)| (divisor, (rem + rhs) % divisor)).collect()
+        )
+    }
+}
+impl Mul<i32> for RemMap {
+    type Output = RemMap;
+
+    fn mul(self, rhs: i32) -> Self::Output {
+        Self(
+            self.0.into_iter().map(|(divisor, rem)| (divisor, (rem * rhs) % divisor)).collect()
+        )
+    }
+}
+impl Div<i32> for RemMap {
+    type Output = RemMap;
+
+    fn div(self, _: i32) -> Self::Output {
+        unimplemented!();
+    }
+}
+impl Square for RemMap {
+    fn square(self) -> Self {
+        Self(
+            self.0.into_iter().map(|(divisor, rem)| (divisor, (rem * rem) % divisor)).collect()
+        )
+    }
+}
+impl Rem<i32> for RemMap {
+    type Output = i32;
+
+    fn rem(self, rhs: i32) -> Self::Output {
+        self.0[&rhs]
+    }
+}
+
+struct Monkey<ItemType: Item> {
+    total_inspected: usize,
+    items: Vec<ItemType>,
+    operation: Operation,
+    throw_decision: ThrowDecision,
+}
+
+
+fn parse_input() -> Vec<MonkeyInput> {
     let input = read_to_string("inputs/day11/input.txt").unwrap();
     match InputParser::parse(Rule::input, &input) {
         Ok(mut pairs) => {
             let pair = pairs.next().unwrap().into_inner().next().unwrap();
-            MonkeyList::parse(pair)
+            Vec::<MonkeyInput>::parse(pair)
         }
         Err(err) => {
             println!("Error parsing input: {}", err);
@@ -221,7 +275,23 @@ fn parse_input() -> MonkeyList {
     }
 }
 
-impl Monkey {
+
+#[derive(Clone, Debug)]
+struct Throw<T> {
+    item: T,
+    monkey_idx: usize,
+}
+
+impl<ItemType: Item> Monkey<ItemType> {
+    fn new(input: MonkeyInput, divisors: &Vec<i32>) -> Self {
+        Self{
+            total_inspected: 0,
+            items: input.items.iter().map(|item| ItemType::from_initial(*item, divisors.iter().copied())).collect(),
+            throw_decision: input.throw_decision,
+            operation: input.operation,
+        }
+    }
+
     fn inspect_items(&mut self) {
         self.total_inspected += self.items.len();
         for item in self.items.iter_mut() {
@@ -235,56 +305,62 @@ impl Monkey {
         }
     }
 
-    fn throw_to(&self, item: &Item) -> usize {
-        if item.clone() % self.divisible_test == 0 {
-            self.if_divisible_monkey
-        } else {
-            self.if_not_divisible_monkey
-        }
-    }
-
-    fn throw_items(&mut self) -> Vec<Throw> {
-        let mut items : Vec<Item> = Vec::new();
+    fn throw_items(&mut self) -> Vec<Throw<ItemType>> {
+        let mut items : Vec<ItemType> = Vec::new();
         swap(&mut items, &mut self.items);
         let throws = items.into_iter()
-            .map(|item| Throw { monkey_idx: self.throw_to(&item), item }).collect();
+            .map(|item| Throw { monkey_idx: self.throw_decision.throw_to(&item), item }).collect();
         throws
     }
 }
 
-fn process_part1_round(monkeys: &mut MonkeyList) {
-    for i in 0..monkeys.len() {
-        monkeys[i].inspect_items();
-        monkeys[i].reduce_worry();
-        for Throw { item, monkey_idx } in monkeys[i].throw_items() {
-            monkeys[monkey_idx].items.push(item);
+
+struct MonkeyList<T: Item>(Vec<Monkey<T>>);
+impl<T: Item> MonkeyList<T> {
+    fn new(inputs: Vec<MonkeyInput>) -> Self{
+        let divisors : Vec<i32> = inputs.iter().map(|i| i.throw_decision.divisor ).collect();
+        Self(
+            inputs.into_iter().map(|input| Monkey::new(input, &divisors)).collect()
+        )
+    }
+
+    fn process_part1_round(&mut self) {
+        for i in 0..self.0.len() {
+            self.0[i].inspect_items();
+            self.0[i].reduce_worry();
+            for Throw { item, monkey_idx } in self.0[i].throw_items() {
+                self.0[monkey_idx].items.push(item);
+            }
         }
     }
-}
 
-fn process_part2_round(monkeys: &mut MonkeyList) {
-    for i in 0..monkeys.len() {
-        monkeys[i].inspect_items();
-        for Throw { item, monkey_idx } in monkeys[i].throw_items() {
-            monkeys[monkey_idx].items.push(item);
+    fn process_part2_round(&mut self) {
+        for i in 0..self.0.len() {
+            self.0[i].inspect_items();
+            for Throw { item, monkey_idx } in self.0[i].throw_items() {
+                self.0[monkey_idx].items.push(item);
+            }
         }
+    }
+
+    fn score(mut self) -> usize {
+        self.0.sort_by(|a, b| b.total_inspected.cmp(&a.total_inspected) );
+        self.0[0].total_inspected * self.0[1].total_inspected
     }
 }
 
 pub fn part1() {
-   let mut monkeys = parse_input();
+    let mut monkeys = MonkeyList::<IntItem>::new(parse_input());
     for _ in 0..20 {
-        process_part1_round(&mut monkeys);
+        monkeys.process_part1_round();
     }
-    monkeys.sort_by(|a, b| b.total_inspected.cmp(&a.total_inspected) );
-    println!("{:?}", monkeys[0].total_inspected * monkeys[1].total_inspected);
+    println!("{:?}", monkeys.score());
 }
 
 pub fn part2() {
-    let mut monkeys = parse_input();
+    let mut monkeys = MonkeyList::<RemMap>::new(parse_input());
     for _ in 0..10000 {
-        process_part2_round(&mut monkeys);
+        monkeys.process_part2_round();
     }
-    monkeys.sort_by(|a, b| b.total_inspected.cmp(&a.total_inspected) );
-    println!("{:?}", monkeys[0].total_inspected * monkeys[1].total_inspected);
+    println!("{:?}", monkeys.score());
 }
