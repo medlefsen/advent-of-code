@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq, Hash)]
 pub struct Grid<T> {
     cells: Vec<Vec<T>>
 }
@@ -12,10 +12,11 @@ impl<T> From<Vec<Vec<T>>> for Grid<T> {
     }
 }
 
+#[derive(PartialEq, Eq, Hash)]
 pub struct GridCursor<'a, T> {
     grid: &'a Grid<T>,
-    row: i32,
-    col: i32,
+    pub row: i32,
+    pub col: i32,
 }
 
 impl<'a, T> Clone for GridCursor<'a, T> {

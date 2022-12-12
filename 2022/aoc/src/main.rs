@@ -1,8 +1,14 @@
 #[macro_use]
 extern crate pest_derive;
 
-mod day1;
+#[macro_use]
+extern crate lazy_static;
+
+mod grid;
 mod util;
+mod a_star;
+
+mod day1;
 mod day2;
 mod day3;
 mod day4;
@@ -13,8 +19,7 @@ mod day8;
 mod day9;
 mod day10;
 mod day11;
-
-mod grid;
+mod day12;
 
 use std::env;
 
@@ -42,6 +47,8 @@ fn run_part(day: i32, part: i32) {
         (10,2) => day10::part2(),
         (11,1) => day11::part1(),
         (11,2) => day11::part2(),
+        (12,1) => day12::part1(),
+        (12,2) => day12::part2(),
         _ => println!("Invalid args"),
     }
 }
