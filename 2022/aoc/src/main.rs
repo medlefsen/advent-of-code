@@ -6,6 +6,7 @@ extern crate lazy_static;
 
 mod grid;
 mod util;
+mod parsing;
 mod a_star;
 
 mod day1;
