@@ -4,14 +4,14 @@ op = { "+" | "*" }
 old = { "old" }
 operand = { number | old }
 starting_items = { ws ~ "Starting items: " ~ number ~ (", " ~ number)* ~ "\n" }
-operation = { ws ~ "Operation: new = " ~ operand ~ ws ~ op ~ ws ~ operand ~ "\n"}
+operation = { ws ~ "Operation: new = old " ~ op ~ ws ~ operand ~ "\n"}
 throw_decision = { test ~ if_true ~ if_false }
 test = { ws ~ "Test: divisible by " ~ number ~ "\n"}
 if_true = { ws ~ "If true: throw to monkey " ~ number ~ "\n"}
 if_false = { ws ~ "If false: throw to monkey " ~ number }
 
 monkey= {
-  "Monkey " ~ number ~ ":\n"
+  "Monkey " ~ ASCII_DIGIT+ ~ ":\n"
   ~ starting_items
   ~ operation
   ~ throw_decision

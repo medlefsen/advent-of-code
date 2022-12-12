@@ -3,7 +3,6 @@ use std::fmt::Debug;
 use std::fs::read_to_string;
 use std::mem::swap;
 use std::ops::{Add, Div, Mul, Rem};
-use std::rc::Rc;
 use pest::iterators::Pair;
 use pest::Parser;
 
@@ -11,8 +10,22 @@ use pest::Parser;
 #[grammar = "src/day11.pest"]
 struct InputParser;
 
-trait Parseable {
-    fn parse(pair: Pair<Rule>) -> Self;
+trait ParseInto<T> {
+    fn parse_into(self) -> T;
+}
+
+trait ParseNext<T> {
+    fn parse_next(&mut self) -> T;
+}
+
+impl<'a, T,R,O> ParseNext<O> for T
+  where
+      T: Iterator<Item=R>,
+      R: ParseInto<O>
+{
+    fn parse_next(&mut self) -> O {
+        self.next().unwrap().parse_into()
+    }
 }
 
 trait Square {
@@ -83,9 +96,9 @@ enum Operand {
     Num(i32)
 }
 use Operand::*;
-impl Parseable for Operand {
-    fn parse(pair: Pair<Rule>) -> Self {
-        match pair.as_str() {
+impl<'a> ParseInto<Operand> for Pair<'a, Rule> {
+    fn parse_into(self) -> Operand {
+        match self.as_str() {
             "old" => Old,
             num => Num(num.parse().unwrap()),
         }
@@ -94,9 +107,9 @@ impl Parseable for Operand {
 
 #[derive(Clone, Copy, Debug)]
 enum Op { Add, Mul }
-impl Parseable for Op {
-    fn parse(pair: Pair<Rule>) -> Self {
-        match pair.as_str() {
+impl<'a> ParseInto<Op> for Pair<'a, Rule> {
+    fn parse_into(self) -> Op {
+        match self.as_str() {
             "+" => Op::Add,
             "*" => Op::Mul,
             _ => unreachable!()
@@ -122,37 +135,39 @@ impl Operation {
     }
 }
 
-impl Parseable for Operation {
-    fn parse(pair: Pair<Rule>) -> Self {
-        let mut pairs = pair.into_inner();
-        let _ = Operand::parse(pairs.next().unwrap());
-        let op = Op::parse(pairs.next().unwrap());
-        let rhs = Operand::parse(pairs.next().unwrap());
-        Self{ rhs, op }
+impl<'a> ParseInto<Operation> for Pair<'a, Rule> {
+    fn parse_into(self) -> Operation {
+        let mut pairs = self.into_inner();
+        Operation{
+            op: pairs.parse_next(),
+            rhs: pairs.parse_next(),
+        }
     }
 }
 
-impl<T: Parseable> Parseable for Vec<T> {
-    fn parse(pair: Pair<Rule>) -> Self {
-        pair.into_inner().map(|r| T::parse(r) ).collect()
+impl<'a, T> ParseInto<Vec<T>> for Pair<'a, Rule>
+  where Pair<'a, Rule>: ParseInto<T>
+{
+    fn parse_into(self) -> Vec<T> {
+        self.into_inner().map(|r| r.parse_into() ).collect()
     }
 }
 
-impl Parseable for i32 {
-    fn parse(pair: Pair<Rule>) -> Self {
-        pair.as_str().parse().unwrap()
+impl<'a> ParseInto<i32> for Pair<'a, Rule> {
+    fn parse_into(self) -> i32 {
+        self.as_str().parse().unwrap()
     }
 }
 
-impl Parseable for i64 {
-    fn parse(pair: Pair<Rule>) -> Self {
-        pair.as_str().parse().unwrap()
+impl<'a> ParseInto<i64> for Pair<'a, Rule> {
+    fn parse_into(self) -> i64 {
+        self.as_str().parse().unwrap()
     }
 }
 
-impl Parseable for usize {
-    fn parse(pair: Pair<Rule>) -> Self {
-        pair.as_str().parse().unwrap()
+impl<'a> ParseInto<usize> for Pair<'a, Rule> {
+    fn parse_into(self) -> usize {
+        self.as_str().parse().unwrap()
     }
 }
 
@@ -163,13 +178,13 @@ struct ThrowDecision {
     if_not_divisible_monkey: usize,
 }
 
-impl Parseable for ThrowDecision {
-    fn parse(pair: Pair<Rule>) -> Self {
-        let mut pairs = pair.into_inner();
-        let divisor = i32::parse(pairs.next().unwrap().into_inner().next().unwrap());
-        let if_divisible_monkey = usize::parse(pairs.next().unwrap().into_inner().next().unwrap());
-        let if_not_divisible_monkey = usize::parse(pairs.next().unwrap().into_inner().next().unwrap());
-        Self { divisor, if_divisible_monkey, if_not_divisible_monkey }
+impl<'a> ParseInto<ThrowDecision> for Pair<'a, Rule> {
+    fn parse_into(self) -> ThrowDecision {
+        let mut pairs = self.into_inner();
+        let divisor = pairs.next().unwrap().into_inner().parse_next();
+        let if_divisible_monkey = pairs.next().unwrap().into_inner().parse_next();
+        let if_not_divisible_monkey = pairs.next().unwrap().into_inner().parse_next();
+        ThrowDecision { divisor, if_divisible_monkey, if_not_divisible_monkey }
     }
 }
 
@@ -177,7 +192,6 @@ impl ThrowDecision {
     fn throw_to<T: Rem<i32, Output=i32> + Clone + Debug>(&self, item: &T) -> usize
     {
         let m = item.clone() % self.divisor;
-       // println!("{} = {:?} % {}", m, item.clone(), self.divisor);
         if  m == 0 {
             self.if_divisible_monkey
         } else {
@@ -193,14 +207,14 @@ struct MonkeyInput {
     throw_decision: ThrowDecision,
 }
 
-impl Parseable for MonkeyInput {
-    fn parse(pair: Pair<Rule>) -> Self {
-        let mut pairs = pair.into_inner();
-        pairs.next(); // id number
-        let items = Vec::<i32>::parse(pairs.next().unwrap());
-        let operation = Operation::parse(pairs.next().unwrap());
-        let throw_decision = ThrowDecision::parse(pairs.next().unwrap());
-        Self { items, operation, throw_decision }
+impl<'a> ParseInto<MonkeyInput> for Pair<'a, Rule> {
+    fn parse_into(self) -> MonkeyInput {
+        let mut pairs = self.into_inner();
+        MonkeyInput {
+            items: pairs.parse_next(),
+            operation: pairs.parse_next(),
+            throw_decision: pairs.parse_next(),
+        }
     }
 }
 
@@ -265,8 +279,7 @@ fn parse_input() -> Vec<MonkeyInput> {
     let input = read_to_string("inputs/day11/input.txt").unwrap();
     match InputParser::parse(Rule::input, &input) {
         Ok(mut pairs) => {
-            let pair = pairs.next().unwrap().into_inner().next().unwrap();
-            Vec::<MonkeyInput>::parse(pair)
+            pairs.next().unwrap().into_inner().parse_next()
         }
         Err(err) => {
             println!("Error parsing input: {}", err);
