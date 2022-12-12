@@ -139,11 +139,10 @@ struct ThrowDecision {
 impl FromPair<Rule> for ThrowDecision {
     fn from_pair(pair: Pair<Rule>) -> Self {
         let mut pairs = pair.into_inner();
-        ThrowDecision {
-            divisor: pairs.next().unwrap().into_inner().parse_next(),
-            if_divisible_monkey: pairs.next().unwrap().into_inner().parse_next(),
-            if_not_divisible_monkey: pairs.next().unwrap().into_inner().parse_next(),
-        }
+        let (divisor,) = pairs.parse_next();
+        let (if_divisible_monkey,) = pairs.parse_next();
+        let (if_not_divisible_monkey,) = pairs.parse_next();
+        ThrowDecision { divisor, if_divisible_monkey, if_not_divisible_monkey }
     }
 }
 

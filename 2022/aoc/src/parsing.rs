@@ -37,6 +37,35 @@ impl<R: RuleType, T: FromPair<R>> FromPair<R> for Vec<T> {
     }
 }
 
+macro_rules! type_as_parse_next {
+    ($v:ident, $t:ident) => { $v.parse_next() }
+}
+
+macro_rules! tuple_from_pair {
+  ($( $t:ident ),+) => {
+    impl<
+        R: RuleType,
+        $($t: FromPair<R>),+
+    > FromPair<R> for ($($t),+,) {
+        fn from_pair(pair: Pair<R>) -> Self {
+            let mut pairs = pair.into_inner();
+            (
+                $( type_as_parse_next!(pairs, $t) ),+
+            )
+        }
+    }
+  }
+}
+
+tuple_from_pair!(T1);
+tuple_from_pair!(T1, T2);
+tuple_from_pair!(T1, T2, T3);
+tuple_from_pair!(T1, T2, T3, T4);
+tuple_from_pair!(T1, T2, T3, T4, T5);
+tuple_from_pair!(T1, T2, T3, T4, T5, T6);
+tuple_from_pair!(T1, T2, T3, T4, T5, T6, T7);
+tuple_from_pair!(T1, T2, T3, T4, T5, T6, T7, T8);
+
 trait FromPairStr: FromStr {}
 
 impl<R,T> FromPair<R> for T
