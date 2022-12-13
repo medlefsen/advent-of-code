@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::rc::Rc;
 use pest::iterators::Pair;
-use crate::parsing::{FromPair, parse_file, ParseInto, ParseNext};
+use crate::parsing::{FromPair, ParseFile, ParseInto, ParseNext};
 
 #[derive(Parser)]
 #[grammar = "src/day13.pest"]
@@ -74,7 +74,7 @@ impl FromPair<Rule> for Input {
 }
 
 fn parse_input() -> Input {
-  parse_file::<InputParser, Rule, Input>(Rule::input, "inputs/day13/input.txt")
+    InputParser::parse_file(Rule::input, "inputs/day13/input.txt")
 }
 
 fn divider_packet(n: i32) -> Packet {

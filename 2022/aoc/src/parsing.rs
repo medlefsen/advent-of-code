@@ -5,15 +5,21 @@ use std::str::FromStr;
 use pest::iterators::Pair;
 use pest::{Parser, RuleType};
 
-pub fn parse_file<P: Parser<R>, R: RuleType,  Output: FromPair<R>>(rule: R, filename: &str) -> Output {
-    let input = read_to_string(filename).unwrap();
-    match P::parse(rule, &input) {
-        Ok(mut pairs) => {
-            pairs.parse_next()
-        }
-        Err(err) => {
-            println!("Error parsing {}: {}", filename, err);
-            panic!();
+pub trait ParseFile<R: RuleType> {
+    fn parse_file<T: FromPair<R>>(rule: R, filename: &str) -> T;
+}
+
+impl<R: RuleType, P: Parser<R>> ParseFile<R> for P {
+    fn parse_file<T: FromPair<R>>(rule: R, filename: &str) -> T {
+        let input = read_to_string(filename).unwrap();
+        match P::parse(rule, &input) {
+            Ok(mut pairs) => {
+                pairs.parse_next()
+            }
+            Err(err) => {
+                println!("Error parsing {}: {}", filename, err);
+                panic!();
+            }
         }
     }
 }
@@ -71,7 +77,7 @@ macro_rules! tuple_from_pair {
         fn from_pair(pair: Pair<R>) -> Self {
             let mut pairs = pair.into_inner();
             (
-                $( type_as_parse_next!(pairs, $t) ),+
+                $( type_as_parse_next!(pairs, $t) ),+,
             )
         }
     }

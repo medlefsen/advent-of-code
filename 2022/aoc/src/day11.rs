@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::fs::read_to_string;
 use std::mem::swap;
 use std::ops::{Add, Div, Mul, Rem};
 use pest::iterators::Pair;
-use pest::Parser;
-use crate::parsing::{FromPair, ParseNext};
+use crate::parsing::{FromPair, ParseFile, ParseNext};
 
 #[derive(Parser)]
 #[grammar = "src/day11.pest"]
@@ -234,16 +232,8 @@ struct Monkey<ItemType: Item> {
 
 
 fn parse_input() -> Vec<MonkeyInput> {
-    let input = read_to_string("inputs/day11/input.txt").unwrap();
-    match InputParser::parse(Rule::input, &input) {
-        Ok(mut pairs) => {
-            pairs.next().unwrap().into_inner().parse_next()
-        }
-        Err(err) => {
-            println!("Error parsing input: {}", err);
-            panic!();
-        }
-    }
+    let (input,) : (Vec<MonkeyInput>,) = InputParser::parse_file(Rule::input, "inputs/day11/input.txt");
+    return input;
 }
 
 
