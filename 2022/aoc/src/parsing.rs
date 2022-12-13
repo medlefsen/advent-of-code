@@ -1,7 +1,22 @@
 use std::fmt::Debug;
+use std::fs::read_to_string;
+use std::rc::Rc;
 use std::str::FromStr;
 use pest::iterators::Pair;
-use pest::RuleType;
+use pest::{Parser, RuleType};
+
+pub fn parse_file<P: Parser<R>, R: RuleType,  Output: FromPair<R>>(rule: R, filename: &str) -> Output {
+    let input = read_to_string(filename).unwrap();
+    match P::parse(rule, &input) {
+        Ok(mut pairs) => {
+            pairs.parse_next()
+        }
+        Err(err) => {
+            println!("Error parsing {}: {}", filename, err);
+            panic!();
+        }
+    }
+}
 
 pub trait FromPair<R> {
     fn from_pair(pair: Pair<R>) -> Self;
@@ -34,6 +49,12 @@ impl<'a, T,R,O> ParseNext<O> for T
 impl<R: RuleType, T: FromPair<R>> FromPair<R> for Vec<T> {
     fn from_pair(pair: Pair<R>) -> Self {
         pair.into_inner().map(|r| r.parse_into() ).collect()
+    }
+}
+
+impl<R: RuleType, T: FromPair<R>> FromPair<R> for Rc<T> {
+    fn from_pair(pair: Pair<R>) -> Self {
+        Rc::new(pair.parse_into())
     }
 }
 

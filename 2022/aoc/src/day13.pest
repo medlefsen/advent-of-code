@@ -1,0 +1,7 @@
+num = { ASCII_DIGIT+ }
+element = { list | num }
+list = { "[" ~ ( element ~ ("," ~ element )* )? ~ "]"}
+packet = { list ~ "\n" }
+packet_pair = { packet ~ packet ~ "\n"?}
+packets = { packet_pair+ }
+input = { SOI ~ packets ~ EOI }
