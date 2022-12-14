@@ -4,8 +4,10 @@ use std::str::FromStr;
 use crate::a_star::{a_star, AStarNode};
 use crate::grid::*;
 
+type ElevationGrid = VecGrid<i32>;
+
 struct Input {
-    grid: Grid<i32>,
+    grid: ElevationGrid,
     start: (i32, i32),
     end: (i32, i32),
 }
@@ -19,7 +21,7 @@ impl<'a> FromStr for Input {
         }
         let mut start : Option<(i32, i32)> = None;
         let mut end : Option<(i32, i32)> = None;
-        let grid : Grid<i32> = s.lines().enumerate().map(|(y,line)| {
+        let grid : ElevationGrid = s.lines().enumerate().map(|(y,line)| {
             line.chars().enumerate().map(|(x, char)| {
                match char {
                    'S' => { start = Some((y as i32, x as i32)); Ok(0) }
@@ -42,9 +44,9 @@ fn read_input() -> Input {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-struct Pos<'a>(GridCursor<'a, i32>);
+struct Pos<'a>(GridCursor<'a, ElevationGrid>);
 
-fn push_neigh_if_valid<'a, 'b: 'a>(vec: &'a mut Vec<Pos<'b>>, cur: &GridCursor<'b, i32>, maybe_neigh: Option<GridCursor<'b, i32>>) {
+fn push_neigh_if_valid<'a, 'b: 'a>(vec: &'a mut Vec<Pos<'b>>, cur: &GridCursor<'b, ElevationGrid>, maybe_neigh: Option<GridCursor<'b, ElevationGrid>>) {
     if let Some(neigh) = maybe_neigh {
         if *neigh <= **cur + 1 {
             vec.push(Pos(neigh));

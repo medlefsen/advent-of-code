@@ -1,27 +1,29 @@
-use crate::grid::{Grid, GridCursor};
+use crate::grid::{VecGrid, GridCursor, Grid};
 use crate::util::read_lines;
 
-fn read_input() -> Grid<u32> {
+type Forest = VecGrid<u32>;
+
+fn read_input() -> Forest {
     read_lines("inputs/day8/input.txt").iter()
         .map(|line| line.chars().map(|c| c.to_digit(10).unwrap()).collect())
         .collect::<Vec<Vec<u32>>>()
         .into()
 }
 
-fn is_visible_in_dir(cursor: GridCursor<u32>, down: i32, right: i32) -> bool {
+fn is_visible_in_dir(cursor: GridCursor<Forest>, down: i32, right: i32) -> bool {
     cursor.iter_by(down, right).all(|c| {
         *c < *cursor
     })
 }
 
-fn is_visible(cursor: GridCursor<u32>) -> bool {
+fn is_visible(cursor: GridCursor<Forest>) -> bool {
     is_visible_in_dir(cursor.clone(), 1, 0)
         || is_visible_in_dir(cursor.clone(), -1, 0)
         || is_visible_in_dir(cursor.clone(), 0, 1)
         || is_visible_in_dir(cursor.clone(), 0, -1)
 }
 
-fn visible_trees_in_dir(cursor: GridCursor<u32>, down: i32, right: i32) -> usize {
+fn visible_trees_in_dir(cursor: GridCursor<Forest>, down: i32, right: i32) -> usize {
     let mut visible_trees = 0;
     for c in cursor.iter_by(down, right) {
         if *c < *cursor {
@@ -33,7 +35,7 @@ fn visible_trees_in_dir(cursor: GridCursor<u32>, down: i32, right: i32) -> usize
     return visible_trees;
 }
 
-fn scenic_score(cursor: GridCursor<u32>) -> usize {
+fn scenic_score(cursor: GridCursor<Forest>) -> usize {
     visible_trees_in_dir(cursor.clone(), 1, 0)
         * visible_trees_in_dir(cursor.clone(), -1, 0)
         * visible_trees_in_dir(cursor.clone(), 0, 1)
