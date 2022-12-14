@@ -1,0 +1,5 @@
+num = { ASCII_DIGIT+ }
+pair = { num ~ "," ~ num}
+line = { pair ~ ( " -> " ~ pair)* ~ "\n"? }
+lines = { line+ }
+input = { SOI ~ lines ~ EOI }
