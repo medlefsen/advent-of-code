@@ -1,0 +1,5 @@
+num = { "-"? ~ ASCII_DIGIT+ }
+coord = { "x=" ~ num ~ ", y=" ~ num }
+sensor = { "Sensor at " ~ coord ~ ": closest beacon is at " ~ coord ~ "\n"? }
+sensors = { sensor+ }
+input = { SOI ~ sensors ~ EOI }
