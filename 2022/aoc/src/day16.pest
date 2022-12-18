@@ -1,0 +1,6 @@
+name = { ASCII_ALPHA_UPPER+ }
+num = { ASCII_DIGIT+ }
+name_list = { name ~ (", " ~ name)* }
+valve = { "Valve " ~ name ~ " has flow rate=" ~ num ~"; tunnel" ~ "s"? ~ " lead" ~ "s"? ~ " to valve" ~ "s"? ~ " " ~ name_list ~ "\n"?}
+valves = { valve+ }
+input = { SOI ~ valves ~ EOI }
