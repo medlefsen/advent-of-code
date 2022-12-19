@@ -25,6 +25,7 @@ mod day13;
 mod day14;
 mod day15;
 mod day16;
+mod day17;
 
 use std::env;
 
@@ -62,6 +63,8 @@ fn run_part(day: i32, part: i32) {
         (15,2) => day15::part2(),
         (16,1) => day16::part1(),
         (16,2) => day16::part2(),
+        (17,1) => day17::part1(),
+        (17,2) => day17::part2(),
         _ => println!("Invalid args"),
     }
 }
