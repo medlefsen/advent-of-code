@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::fs::read_to_string;
 use std::rc::Rc;
 use std::str::FromStr;
+use std::sync::Arc;
 use pest::iterators::Pair;
 use pest::{Parser, RuleType};
 
@@ -58,9 +59,16 @@ impl<R: RuleType, T: FromPair<R>> FromPair<R> for Vec<T> {
     }
 }
 
+
 impl<R: RuleType, T: FromPair<R>> FromPair<R> for Rc<T> {
     fn from_pair(pair: Pair<R>) -> Self {
         Rc::new(pair.parse_into())
+    }
+}
+
+impl<R: RuleType, T: FromPair<R>> FromPair<R> for Arc<T> {
+    fn from_pair(pair: Pair<R>) -> Self {
+        Arc::new(pair.parse_into())
     }
 }
 
@@ -112,3 +120,5 @@ impl FromPairStr for u32 {}
 impl FromPairStr for i64 {}
 impl FromPairStr for u64 {}
 impl FromPairStr for usize {}
+impl FromPairStr for String {}
+

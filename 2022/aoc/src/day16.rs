@@ -1,14 +1,13 @@
-use std::cmp::{max, Ordering};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap, VecDeque};
 use std::collections::hash_map::Entry;
 use std::fmt::{Debug, Formatter};
 use std::hash::Hash;
-use std::mem::{swap, take};
-use std::ops::{Add, Deref};
+use std::mem::take;
+use std::ops::Deref;
 use std::rc::Rc;
 use itertools::Itertools;
 use pest::iterators::Pair;
-use crate::a_star::{a_star, AStarNode};
 use crate::parsing::{FromPair, ParseFile, ParseNext};
 
 #[derive(Parser)]
@@ -107,7 +106,7 @@ enum Action {
     Move(String),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Output {
     initial: u32,
     minute: u32,
@@ -115,10 +114,6 @@ struct Output {
 }
 
 impl Output {
-    fn total(&self) -> u32 {
-        self.total_at(30)
-    }
-
     fn total_at(&self, min: u32) -> u32 {
         self.initial + self.rate * (min - self.minute)
     }
@@ -140,7 +135,7 @@ impl PartialOrd<Self> for Output {
 
 impl Ord for Output {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.total().cmp(&other.total())
+        self.total_at(30).cmp(&other.total_at(30))
     }
 }
 
@@ -151,7 +146,7 @@ impl MultiCaveState {
     }
 
     fn done(&self) -> bool {
-        self.valves.iter().all(|v| v.open)
+        self.valves.iter().filter(|v| v.rate > 0).all(|v| v.open)
     }
 
     fn current_rate(&self) -> u32 {
@@ -234,6 +229,78 @@ impl FromPair<Rule> for Valve {
     }
 }
 
+fn update_state<T: Eq + Hash + Clone, O: Clone + Ord>(scores: &mut HashMap<T, O>, open: &mut VecDeque<(T, O)>, state: &T, total: O) {
+    match scores.entry(state.clone()) {
+        Entry::Occupied(mut o) => {
+            let cur_score = o.get_mut();
+            if total > *cur_score {
+                *cur_score = total.clone();
+                open.push_back((state.clone(), total));
+            }
+        }
+        Entry::Vacant(o) => {
+            o.insert(total.clone());
+            open.push_back((state.clone(), total));
+        }
+    }
+}
+
+#[derive(Debug)]
+struct WeightedValue<W: PartialEq + Eq + PartialOrd + Ord + Clone, T: Clone> {
+    weight: W,
+    value: T,
+}
+
+impl<W: PartialEq + Eq + PartialOrd + Ord + Clone, T: Clone> WeightedValue<W,T> {
+    fn new(value: T, weight: W) -> Self {
+        Self { value, weight }
+    }
+}
+
+impl<W: PartialEq + Eq + PartialOrd + Ord + Clone, T: Clone> PartialEq for WeightedValue<W, T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.weight == other.weight
+    }
+}
+
+impl<W: PartialEq + Eq + PartialOrd + Ord + Clone, T: Clone> Eq for WeightedValue<W, T> {}
+
+impl<W: PartialEq + Eq + PartialOrd + Ord + Clone, T: Clone> PartialOrd for WeightedValue<W,T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.weight.partial_cmp(&other.weight)
+    }
+}
+
+impl<W:PartialEq + Eq + PartialOrd + Ord + Clone, T: Clone> Ord for WeightedValue<W, T>
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.weight.cmp(&other.weight)
+    }
+}
+
+type HeapValue = WeightedValue<Output, (MultiCaveState, Output)>;
+
+fn update_state2(scores: &mut HashMap<MultiCaveState, Output>, open: &mut BinaryHeap<HeapValue>, state: &MultiCaveState, score: Output) {
+    let minute = score.minute + 1;
+    let new_score = Output { initial: score.total_at(minute), minute, rate: state.current_rate()};
+    let est_score = Output { rate: state.valves.iter().map(|v| v.rate).sum(), ..new_score};
+    match scores.entry(state.clone()) {
+        Entry::Occupied(mut o) => {
+            let cur_score = o.get_mut();
+            if new_score.minute < cur_score.minute {
+                *cur_score = new_score.clone();
+                let value = WeightedValue::new((state.clone(), new_score.clone()), est_score);
+                open.push(value);
+            }
+        }
+        Entry::Vacant(o) => {
+            o.insert(new_score.clone());
+            let value = WeightedValue::new((state.clone(), new_score.clone()), est_score);
+            open.push(value);
+        }
+    }
+}
+
 fn parse_input() -> Vec<Rc<Valve>> {
     let (input,) = InputParser::parse_file(Rule::input, "inputs/day16/input.txt");
     input
@@ -248,7 +315,7 @@ pub fn part1() {
     scores.insert(start.clone(), 0);
     for i in 1..=30 {
         println!("{}: {} open", i, open.len());
-        let mut cur_open = take(&mut open);
+        let cur_open = take(&mut open);
         for (state, score) in &cur_open {
             let total = score + state.current_rate();
             if state.done() {
@@ -268,40 +335,29 @@ pub fn part1() {
     println!("Final {}: {:?}", score, state);
 }
 
-fn update_state<T: Eq + Hash + Clone, O: Clone + Ord>(scores: &mut HashMap<T, O>, open: &mut VecDeque<(T, O)>, state: &T, total: O) {
-    match scores.entry(state.clone()) {
-        Entry::Occupied(mut o) => {
-            let cur_score = o.get_mut();
-            if total > *cur_score {
-                *cur_score = total.clone();
-                open.push_back((state.clone(), total));
-            }
-        }
-        Entry::Vacant(o) => {
-            o.insert(total.clone());
-            open.push_back((state.clone(), total));
-        }
-    }
-}
-
 pub fn part2() {
     let valves = parse_input();
     let mut scores : HashMap<MultiCaveState, Output> = HashMap::new();
     let start = MultiCaveState { valves: valves.clone(), cur: ("AA".into(), "AA".into()) };
-    let mut open : VecDeque<(MultiCaveState, Output)> = VecDeque::new();
-    open.push_back((start.clone(), Output { minute: 0, initial: 0, rate: 0}));
+    let mut open : BinaryHeap<HeapValue> = Default::default();
+    let initial_output = Output { minute: 0, initial: 0, rate: 0};
+    open.push(WeightedValue::new((start.clone(), initial_output.clone()), initial_output));
     scores.insert(start.clone(), Output { minute: 0, initial: 0, rate: 0});
-    for minute in 0..26 {
-        println!("{}: {} open", minute, open.len());
-        let mut cur_open = take(&mut open);
-        for (state, score) in &cur_open {
-            let output = Output { initial: score.total_at(minute), minute, rate: state.current_rate() };
-            for new_state in &state.next_states() {
-                update_state(&mut scores, &mut open, new_state, output.clone());
-            }
+    let mut counter: usize = 0;
+    while let Some(WeightedValue { weight: _, value: (state, score) }) = open.pop() {
+        if counter % 1000000 == 0 {
+            println!("{}: {} open", counter, open.len());
+        }
+        counter += 1;
+        let minute = score.minute + 1;
+        if minute > 26 {
+            break;
+        }
+
+        for new_state in &state.next_states() {
+            update_state2(&mut scores, &mut open, new_state, score.clone());
         }
     }
     let (state, score) = scores.iter().max_by(|(_,a),(_,b)| a.cmp(b) ).unwrap();
     println!("Final {}: {:?}", score.total_at(26), state);
-
 }
