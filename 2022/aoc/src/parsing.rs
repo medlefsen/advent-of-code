@@ -1,5 +1,7 @@
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fs::read_to_string;
+use std::hash::Hash;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -54,6 +56,12 @@ impl<'a, T,R,O> ParseNext<O> for T
 }
 
 impl<R: RuleType, T: FromPair<R>> FromPair<R> for Vec<T> {
+    fn from_pair(pair: Pair<R>) -> Self {
+        pair.into_inner().map(|r| r.parse_into() ).collect()
+    }
+}
+
+impl<R: RuleType, T: FromPair<R> + Eq + Hash> FromPair<R> for HashSet<T> {
     fn from_pair(pair: Pair<R>) -> Self {
         pair.into_inner().map(|r| r.parse_into() ).collect()
     }
