@@ -1,4 +1,4 @@
-use std::cmp::{max, Ordering};
+use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
 use std::collections::hash_map::Entry;
 use pest::iterators::Pair;
@@ -86,7 +86,7 @@ impl Blueprint {
 
     fn for_each_action<F: FnMut(State)>(&self, state: State, mut f: F) {
         lazy_static!{
-          static ref masks : [Quad<Count>; 5] = [
+          static ref MASKS : [Quad<Count>; 5] = [
                 Quad::new(0,0,0,0),
                 Quad::new(1,0,0,0),
                 Quad::new(0,1,0,0),
@@ -95,7 +95,7 @@ impl Blueprint {
             ];
         }
 
-        for robot_mask in masks.iter() {
+        for robot_mask in MASKS.iter() {
             if let Some(new_state) = self.build_robots(state, *robot_mask) {
                 f(new_state);
             }
@@ -130,7 +130,7 @@ impl Blueprint {
                     let best_score2 = scores2.entry((next_min, next_state.robots));
                     let has_best_score2 = match best_score2 {
                         Entry::Occupied(mut e) => {
-                            let mut cur = e.get_mut();
+                            let cur = e.get_mut();
                             !(*cur >= next_state.resources) && {
                                 *cur = next_state.resources;
                                 true

@@ -86,6 +86,7 @@ impl List {
         self.nodes.len()
     }
 
+    #[allow(dead_code)]
     fn as_vec(&self) -> Vec<i64> {
         let mut node = 0;
         let mut vec = vec![self.nodes[node].value];
@@ -116,7 +117,6 @@ pub fn part1() {
     let input = read_input();
     let mut list = List::new(input.clone());
     for (ind, amount) in input.iter().enumerate() {
-        let mut mod_list = list.clone();
         list.move_by(ind, *amount);
     }
     let zero = list.find(0).unwrap();

@@ -27,16 +27,6 @@ impl<T: Copy + Add<Output=T>> Quad<T> {
         self[0] + self[1] + self[2] + self[3]
     }
 }
-impl<T: Copy + Ord> Quad<T> {
-    pub fn clamp(&self, min: T, max: T) -> Self {
-        Self::new(
-            self[0].clamp(min,max),
-            self[1].clamp(min,max),
-            self[2].clamp(min,max),
-            self[3].clamp(min,max),
-        )
-    }
-}
 impl<T: Copy> Quad<T> {
     pub fn pw_mul<OT>(self, rhs: Quad<OT>) -> Quad<T::Output>
     where
