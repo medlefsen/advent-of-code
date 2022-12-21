@@ -1,0 +1,8 @@
+name = { ASCII_ALPHA+ }
+num = { ASCII_DIGIT+ }
+op = { "+" | "-" | "*" | "/" }
+expr = { name ~ " " ~ op ~ " " ~ name }
+job = { num | expr }
+monkey = { name ~ ": " ~ job ~ "\n"?}
+monkeys = { monkey+ }
+input = { SOI ~ monkeys ~ EOI }
