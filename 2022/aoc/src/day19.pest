@@ -1,0 +1,11 @@
+ws = _{ " " | "\n" }
+resource = { "ore" | "clay" | "obsidian" | "geode" }
+num = { ASCII_DIGIT+ }
+cost = { num ~ " " ~ resource }
+costs = { cost ~ ( " and " ~ cost )? }
+robot = { " "* ~ "Each " ~ resource ~ " robot costs " ~ costs ~ "." ~ ws* }
+blueprint = {
+  "Blueprint " ~ ASCII_DIGIT+ ~ ":" ~ ws* ~ robot+
+}
+blueprints = { blueprint+ }
+input = { SOI ~ blueprints ~ EOI }

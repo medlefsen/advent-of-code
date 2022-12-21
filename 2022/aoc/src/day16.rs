@@ -9,6 +9,7 @@ use std::rc::Rc;
 use itertools::Itertools;
 use pest::iterators::Pair;
 use crate::parsing::{FromPair, ParseFile, ParseNext};
+use crate::weighted_value::WeightedValue;
 
 #[derive(Parser)]
 #[grammar="src/day16.pest"]
@@ -242,39 +243,6 @@ fn update_state<T: Eq + Hash + Clone, O: Clone + Ord>(scores: &mut HashMap<T, O>
             o.insert(total.clone());
             open.push_back((state.clone(), total));
         }
-    }
-}
-
-#[derive(Debug)]
-struct WeightedValue<W: PartialEq + Eq + PartialOrd + Ord + Clone, T: Clone> {
-    weight: W,
-    value: T,
-}
-
-impl<W: PartialEq + Eq + PartialOrd + Ord + Clone, T: Clone> WeightedValue<W,T> {
-    fn new(value: T, weight: W) -> Self {
-        Self { value, weight }
-    }
-}
-
-impl<W: PartialEq + Eq + PartialOrd + Ord + Clone, T: Clone> PartialEq for WeightedValue<W, T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.weight == other.weight
-    }
-}
-
-impl<W: PartialEq + Eq + PartialOrd + Ord + Clone, T: Clone> Eq for WeightedValue<W, T> {}
-
-impl<W: PartialEq + Eq + PartialOrd + Ord + Clone, T: Clone> PartialOrd for WeightedValue<W,T> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.weight.partial_cmp(&other.weight)
-    }
-}
-
-impl<W:PartialEq + Eq + PartialOrd + Ord + Clone, T: Clone> Ord for WeightedValue<W, T>
-{
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.weight.cmp(&other.weight)
     }
 }
 
